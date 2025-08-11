@@ -231,6 +231,8 @@ class ExperimentUI {
                 background: #f8f9fa;
                 border-radius: 10px;
                 border-left: 5px solid #4CAF50;
+                max-height: 40vh;
+                overflow-y: auto;
             }
             .scenario-display h3 {
                 margin: 0 0 15px 0;
@@ -386,6 +388,29 @@ class ExperimentUI {
             };
             
             textarea.addEventListener('keydown', handleKeyPress);
+            
+            // 清理事件监听器
+            const cleanup = () => {
+                textarea.removeEventListener('keydown', handleKeyPress);
+            };
+            
+            // 修改按钮点击事件，确保清理事件监听器
+            const originalSendBtnClick = sendBtn.onclick;
+            sendBtn.onclick = () => {
+                const value = textarea.value.trim();
+                if (value) {
+                    cleanup();
+                    document.body.removeChild(screen);
+                    resolve(value);
+                }
+            };
+            
+            const originalCancelBtnClick = cancelBtn.onclick;
+            cancelBtn.onclick = () => {
+                cleanup();
+                document.body.removeChild(screen);
+                resolve('escape');
+            };
         });
     }
 
@@ -465,6 +490,27 @@ class ExperimentUI {
             };
             
             textarea.addEventListener('keydown', handleKeyPress);
+            
+            // 清理事件监听器
+            const cleanup = () => {
+                textarea.removeEventListener('keydown', handleKeyPress);
+            };
+            
+            // 修改按钮点击事件，确保清理事件监听器
+            sendBtn.onclick = () => {
+                const value = textarea.value.trim();
+                if (value) {
+                    cleanup();
+                    document.body.removeChild(screen);
+                    resolve(value);
+                }
+            };
+            
+            cancelBtn.onclick = () => {
+                cleanup();
+                document.body.removeChild(screen);
+                resolve('escape');
+            };
         });
     }
 
@@ -923,10 +969,12 @@ class ExperimentUI {
             const handleKeyPress = (event) => {
                 if (event.key === 'Enter') {
                     const submitBtn = document.querySelector('button');
-                    if (submitBtn.style.pointerEvents !== 'none') {
+                    if (submitBtn && submitBtn.style.pointerEvents !== 'none') {
+                        event.preventDefault();
                         submitBtn.click();
                     }
                 } else if (event.key === 'Escape') {
+                    event.preventDefault();
                     document.body.removeChild(screen);
                     resolve(null);
                 }
@@ -936,6 +984,18 @@ class ExperimentUI {
             
             // 初始验证
             validateForm();
+            
+            // 清理事件监听器
+            const cleanup = () => {
+                document.removeEventListener('keydown', handleKeyPress);
+            };
+            
+            // 在resolve之前清理事件监听器
+            const originalResolve = resolve;
+            resolve = (value) => {
+                cleanup();
+                originalResolve(value);
+            };
         });
     }
     

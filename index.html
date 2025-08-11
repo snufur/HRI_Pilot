@@ -135,7 +135,7 @@
     </div>
 
     <!-- 引用外部JavaScript文件 -->
-    <script src="condition_data_embedded.js"></script>
+    <script src="condition_data.js"></script>
     <script src="pilot_HRI.js"></script>
     
     <script>
@@ -147,8 +147,19 @@
             // 隐藏主界面
             document.querySelector('.container').style.display = 'none';
             
+            // 创建实验所需的各个组件
+            const experimentData = new ExperimentData();
+            const ui = new ExperimentUI();
+            const apiService = new APIService();
+            const textProcessor = new TextProcessor();
+            
             // 创建并运行实验
-            const experiment = new ExperimentManager();
+            const experiment = new ExperimentManager(
+                experimentData,
+                ui,
+                apiService,
+                textProcessor
+            );
             await experiment.run();
             
             // 实验结束后显示主界面
