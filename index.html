@@ -3,135 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人机会话实验</title>
+    <title>心理学实验 - 聊天机器人对话研究</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             font-family: 'SimHei', 'Microsoft YaHei', Arial, sans-serif;
             background: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
         
-        .container {
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 30px;
+        .start-container {
+            text-align: center;
             background: white;
+            padding: 50px;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .header h1 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            color: #666;
-            font-size: 16px;
+            max-width: 600px;
+            width: 90%;
         }
         
         .start-button {
-            display: block;
-            width: 200px;
-            margin: 30px auto;
-            padding: 15px 30px;
+            padding: 20px 40px;
             background: #4CAF50;
             color: white;
             border: none;
             border-radius: 5px;
-            font-size: 18px;
+            font-size: 24px;
             cursor: pointer;
             transition: background 0.3s;
+            margin: 10px;
         }
         
         .start-button:hover {
             background: #45a049;
         }
         
-        .instructions {
+        .resume-button {
+            padding: 20px 40px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin: 10px;
+        }
+        
+        .resume-button:hover {
+            background: #0b7dda;
+        }
+        
+        .resume-form {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
             background: #f9f9f9;
-            padding: 20px;
             border-radius: 5px;
-            margin: 20px 0;
         }
         
-        .instructions h3 {
-            color: #333;
-            margin-top: 0;
+        .form-group {
+            margin-bottom: 15px;
         }
         
-        .instructions ul {
-            color: #666;
-            line-height: 1.6;
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
         }
         
-        .experiment-flow {
-            background: #e8f4fd;
-            padding: 20px;
-            border-radius: 5px;
-            margin: 20px 0;
-        }
-        
-        .experiment-flow h3 {
-            color: #1976d2;
-            margin-top: 0;
-        }
-        
-        .flow-step {
-            margin: 10px 0;
+        .form-group input {
+            width: 100%;
             padding: 10px;
-            background: white;
+            border: 1px solid #ddd;
             border-radius: 3px;
-            border-left: 4px solid #1976d2;
+            font-size: 16px;
+            box-sizing: border-box;
         }
         
-        .flow-step strong {
-            color: #1976d2;
+        .form-buttons {
+            margin-top: 20px;
+        }
+        
+        .form-button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .form-button.primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .form-button.secondary {
+            background: #f44336;
+            color: white;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>心理学实验</h1>
-            <p>聊天机器人对话研究</p>
-        </div>
+    <div class="start-container">
+        <h1>心理学实验 - 聊天机器人对话研究</h1>
+        <p>欢迎参加本次实验！</p>
         
-        <div class="instructions">
-            <h3>实验说明</h3>
-            <ul>
-                <li>本实验将测试您与不同聊天机器人的对话体验</li>
-                <li>实验包含前测量表、练习阶段和正式实验阶段</li>
-                <li>每次对话后需要评价聊天机器人的礼貌程度</li>
-                <li>每组对话结束后需要完成主观感受问卷</li>
-                <li>实验数据将自动保存到您的设备</li>
-                <li>整个实验大约需要60分钟完成</li>
-            </ul>
-        </div>
+        <button class="start-button" onclick="startExperiment()">开始新实验</button>
+        <button class="resume-button" onclick="showResumeForm()">恢复实验</button>
         
-        <div class="experiment-flow">
-            <h3>实验流程</h3>
-            <div class="flow-step">
-                <strong>第一步：</strong> 完成拟人化个体差异量表（15题）
+        <div id="resumeForm" class="resume-form">
+            <h3>恢复实验</h3>
+            <p>请输入您的姓名和手机号来恢复之前的实验进度：</p>
+            
+            <div class="form-group">
+                <label for="resumeName">姓名：</label>
+                <input type="text" id="resumeName" placeholder="请输入您的姓名">
             </div>
-            <div class="flow-step">
-                <strong>第二步：</strong> 练习阶段（3次对话，熟悉操作）
+            
+            <div class="form-group">
+                <label for="resumePhone">手机号：</label>
+                <input type="tel" id="resumePhone" placeholder="请输入您的手机号">
             </div>
-            <div class="flow-step">
-                <strong>第三步：</strong> 正式实验（多组对话，每组10次）
-            </div>
-            <div class="flow-step">
-                <strong>第四步：</strong> 每组对话后完成主观感受问卷（9题）
+            
+            <div class="form-buttons">
+                <button class="form-button primary" onclick="resumeExperiment()">恢复实验</button>
+                <button class="form-button secondary" onclick="hideResumeForm()">取消</button>
             </div>
         </div>
-        
-        <button class="start-button" onclick="startExperiment()">开始实验</button>
     </div>
 
     <!-- 引用外部JavaScript文件 -->
@@ -144,26 +148,99 @@
             // 设置标志，防止重复启动
             window.experimentStarted = true;
             
-            // 隐藏主界面
-            document.querySelector('.container').style.display = 'none';
-            
-            // 创建实验所需的各个组件
-            const experimentData = new ExperimentData();
-            const ui = new ExperimentUI();
-            const apiService = new APIService();
-            const textProcessor = new TextProcessor();
+            // 隐藏开始界面
+            document.querySelector('.start-container').style.display = 'none';
             
             // 创建并运行实验
-            const experiment = new ExperimentManager(
-                experimentData,
-                ui,
-                apiService,
-                textProcessor
-            );
+            const experiment = new ExperimentManager();
             await experiment.run();
             
-            // 实验结束后显示主界面
-            document.querySelector('.container').style.display = 'block';
+            // 实验结束后显示开始界面
+            document.querySelector('.start-container').style.display = 'block';
+        }
+        
+        // 显示恢复表单
+        function showResumeForm() {
+            document.getElementById('resumeForm').style.display = 'block';
+        }
+        
+        // 隐藏恢复表单
+        function hideResumeForm() {
+            document.getElementById('resumeForm').style.display = 'none';
+            document.getElementById('resumeName').value = '';
+            document.getElementById('resumePhone').value = '';
+        }
+        
+        // 恢复实验函数
+        async function resumeExperiment() {
+            const name = document.getElementById('resumeName').value.trim();
+            const phone = document.getElementById('resumePhone').value.trim();
+            
+            if (!name || !phone) {
+                alert('请输入姓名和手机号');
+                return;
+            }
+            
+            const participantId = `${name}_${phone}`;
+            
+            // 检查是否有现有数据
+            const existingData = ExperimentData.checkExistingData(participantId);
+            if (!existingData.exists) {
+                alert('未找到您的实验数据，请确认姓名和手机号是否正确，或选择开始新实验。');
+                return;
+            }
+            
+            // 设置标志，防止重复启动
+            window.experimentStarted = true;
+            
+            // 隐藏开始界面
+            document.querySelector('.start-container').style.display = 'none';
+            
+            // 创建参与者信息
+            const participantInfo = {
+                name: name,
+                phone: phone,
+                participant: participantId,
+                gender: '未知', // 恢复时无法获取完整信息
+                age: '未知',
+                education: '未知',
+                aiUsage: '未知'
+            };
+            
+            // 创建并运行实验
+            const experiment = new ExperimentManager();
+            
+            // 直接检查恢复数据
+            const resumeChoice = await experiment.checkResumeData(participantInfo);
+            if (resumeChoice === 'cancel') {
+                document.querySelector('.start-container').style.display = 'block';
+                return;
+            }
+            
+            experiment.data = new ExperimentData(participantInfo);
+            
+            // 如果选择重新开始，清除现有数据
+            if (resumeChoice === 'restart') {
+                experiment.data.data = [];
+                experiment.data.saveToLocalStorage();
+            }
+            
+            // 根据恢复选择决定从哪里开始
+            if (resumeChoice === 'resume') {
+                await experiment.resumeFromLastPhase();
+            } else {
+                // 新实验或重新开始
+                await experiment.runNewExperiment();
+            }
+            
+            // 实验结束
+            await experiment.ui.showScreen('实验已全部结束，感谢你的参与！\n按回车退出。', { showContinue: true });
+            
+            // 保存数据
+            experiment.data.saveData();
+            
+            // 实验结束后显示开始界面
+            document.querySelector('.start-container').style.display = 'block';
         }
     </script>
 </body>

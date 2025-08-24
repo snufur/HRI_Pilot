@@ -1,6 +1,3 @@
-// JavaScript版本的心理学实验程序
-// 基于PsychoPy Python程序的完整实现
-
 // ========== 全局配置 ==========
 const CONFIG = {
     API_KEY: 'sk-izbupvpfiixwvwisbyshnnibdsbuaikpynrehgaapnzyheuc',
@@ -21,6 +18,69 @@ class ExperimentData {
     constructor(participantInfo) {
         this.participantInfo = participantInfo;
         this.data = [];
+        this.loadExistingData(); // 加载现有数据
+    }
+
+    // 加载现有数据
+    loadExistingData() {
+        try {
+            const storageKey = `experiment_data_${this.participantInfo.participant}`;
+            const savedData = localStorage.getItem(storageKey);
+            if (savedData) {
+                this.data = JSON.parse(savedData);
+                console.log(`加载了 ${this.data.length} 条现有数据`);
+            }
+        } catch (error) {
+            console.error('加载现有数据失败:', error);
+        }
+    }
+
+    // 保存数据到本地存储
+    saveToLocalStorage() {
+        try {
+            const storageKey = `experiment_data_${this.participantInfo.participant}`;
+            localStorage.setItem(storageKey, JSON.stringify(this.data));
+            console.log('数据已保存到本地存储');
+        } catch (error) {
+            console.error('保存到本地存储失败:', error);
+        }
+    }
+
+    // 检查是否有未完成的实验数据
+    static checkExistingData(participantId) {
+        try {
+            const storageKey = `experiment_data_${participantId}`;
+            const savedData = localStorage.getItem(storageKey);
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                return {
+                    exists: true,
+                    data: data,
+                    lastPhase: this.getLastPhase(data)
+                };
+            }
+            return { exists: false };
+        } catch (error) {
+            console.error('检查现有数据失败:', error);
+            return { exists: false };
+        }
+    }
+
+    // 获取最后完成的阶段
+    static getLastPhase(data) {
+        if (!data || data.length === 0) return null;
+        
+        const phases = data.map(item => item.phase);
+        const phaseOrder = ['pretest', 'practice', 'experiment', 'block_questionnaire'];
+        
+        let lastPhase = null;
+        for (const phase of phaseOrder) {
+            if (phases.includes(phase)) {
+                lastPhase = phase;
+            }
+        }
+        
+        return lastPhase;
     }
 
     // 添加数据条目
@@ -34,30 +94,71 @@ class ExperimentData {
             ...data
         };
         this.data.push(entry);
+        
+        // 立即保存到本地存储
+        this.saveToLocalStorage();
+        
+        // 添加调试信息
+        console.log(`添加数据 - 阶段: ${phase}`, entry);
+        console.log(`当前数据总数: ${this.data.length}`);
     }
 
     // 保存数据到文件
     saveData() {
         const filename = `pilot_${this.participantInfo.participant}_${this.getDateStr()}`;
-        const jsonData = JSON.stringify(this.data, null, 2);
-        this.downloadFile(jsonData, `${filename}.json`, 'application/json');
         
-        // 同时保存CSV格式
+        // 添加调试信息
+        console.log('正在保存数据...');
+        console.log('数据条数:', this.data.length);
+        console.log('参与者信息:', this.participantInfo);
+        console.log('数据内容:', this.data);
+        
+        const jsonData = JSON.stringify(this.data, null, 2);
+        console.log('JSON数据:', jsonData);
+        
+        try {
+            this.downloadFile(jsonData, `${filename}.json`, 'application/json');
+            console.log('JSON文件下载成功');
+        } catch (error) {
+            console.error('JSON文件下载失败:', error);
+        }
+        
         const csvData = this.convertToCSV();
-        this.downloadFile(csvData, `${filename}.csv`, 'text/csv');
+        console.log('CSV数据:', csvData);
+        
+        try {
+            this.downloadFile(csvData, `${filename}.csv`, 'text/csv');
+            console.log('CSV文件下载成功');
+        } catch (error) {
+            console.error('CSV文件下载失败:', error);
+        }
+        
+        // 显示保存成功消息
+        alert(`数据保存完成！\n文件名: ${filename}\n请检查您的下载文件夹。\n\n如果文件没有下载，请检查浏览器设置是否允许自动下载。`);
     }
 
     // 转换为CSV格式
     convertToCSV() {
         if (this.data.length === 0) return '';
         
-        const headers = Object.keys(this.data[0]);
+        // 收集所有可能的字段
+        const allFields = new Set();
+        for (const row of this.data) {
+            Object.keys(row).forEach(key => allFields.add(key));
+        }
+        
+        // 转换为数组并排序，确保列的顺序一致
+        const headers = Array.from(allFields).sort();
         const csvRows = [headers.join(',')];
         
         for (const row of this.data) {
             const values = headers.map(header => {
                 const value = row[header];
-                // 处理包含逗号或引号的值
+                // 处理undefined、null或空值
+                if (value === undefined || value === null) {
+                    return '';
+                }
+                // 处理包含逗号或引号的字符串
                 if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
                     return `"${value.replace(/"/g, '""')}"`;
                 }
@@ -266,6 +367,29 @@ class ExperimentUI {
                 outline: none;
                 border-color: #4CAF50;
             }
+            .reply-display {
+                width: 80%;
+                max-width: 800px;
+                margin-bottom: 30px;
+                padding: 20px;
+                background: #f8f9fa;
+                border-radius: 10px;
+                border-left: 5px solid #4CAF50;
+                min-height: 100px;
+                height: auto;
+                overflow: hidden;
+                box-sizing: border-box;
+            }
+            .reply-content {
+                line-height: 1.8;
+                font-size: ${CONFIG.TEXT_CONFIG.mainTextHeight};
+                color: #4667e0;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                word-break: break-all;
+                margin: 0;
+                padding: 0;
+            }
         `;
         document.head.appendChild(style);
     }
@@ -365,7 +489,7 @@ class ExperimentUI {
             cancelBtn.textContent = '取消';
             cancelBtn.onclick = () => {
                 document.body.removeChild(screen);
-                resolve('');
+                resolve('cancel'); // 返回'cancel'而不是空字符串
             };
             
             buttonGroup.appendChild(sendBtn);
@@ -409,7 +533,7 @@ class ExperimentUI {
             cancelBtn.onclick = () => {
                 cleanup();
                 document.body.removeChild(screen);
-                resolve('escape');
+                resolve('cancel'); // 返回'cancel'而不是'escape'
             };
         });
     }
@@ -467,7 +591,7 @@ class ExperimentUI {
             cancelBtn.textContent = '取消';
             cancelBtn.onclick = () => {
                 document.body.removeChild(screen);
-                resolve('escape');
+                resolve('cancel'); // 返回'cancel'而不是'escape'
             };
             
             buttonGroup.appendChild(sendBtn);
@@ -509,7 +633,7 @@ class ExperimentUI {
             cancelBtn.onclick = () => {
                 cleanup();
                 document.body.removeChild(screen);
-                resolve('escape');
+                resolve('cancel'); // 返回'cancel'而不是'escape'
             };
         });
     }
@@ -663,11 +787,46 @@ class ExperimentUI {
             titleDiv.style.marginBottom = '20px';
             screen.appendChild(titleDiv);
             
+            // 创建文本框容器 - 使用与context文本框相同的样式
+            const replyContainer = document.createElement('div');
+            replyContainer.className = 'reply-display';
+            
             const replyDiv = document.createElement('div');
-            replyDiv.className = 'text-display';
-            replyDiv.textContent = replyText;
-            replyDiv.style.color = CONFIG.TEXT_CONFIG.highlightColor;
-            screen.appendChild(replyDiv);
+            replyDiv.className = 'reply-content';
+            
+            // 清理回复文本，去除前导空白字符
+            const cleanedReplyText = replyText.trim();
+            replyDiv.textContent = cleanedReplyText;
+            
+            // 计算文本框高度并设置
+            const calculateHeight = () => {
+                // 创建一个临时的隐藏元素来计算文本高度
+                const tempDiv = document.createElement('div');
+                tempDiv.className = 'reply-content';
+                tempDiv.style.cssText = `
+                    position: absolute;
+                    visibility: hidden;
+                    height: auto;
+                    width: ${replyContainer.offsetWidth - 40}px;
+                    padding: 0;
+                    margin: 0;
+                `;
+                tempDiv.textContent = cleanedReplyText;
+                document.body.appendChild(tempDiv);
+                
+                const textHeight = tempDiv.offsetHeight;
+                document.body.removeChild(tempDiv);
+                
+                // 设置文本框高度，最小100px，最大600px
+                const finalHeight = Math.max(100, Math.min(600, textHeight + 40));
+                replyContainer.style.height = `${finalHeight}px`;
+            };
+            
+            replyContainer.appendChild(replyDiv);
+            screen.appendChild(replyContainer);
+            
+            // 等待DOM渲染完成后计算高度
+            setTimeout(calculateHeight, 0);
             
             const tipDiv = document.createElement('div');
             tipDiv.className = 'text-display';
@@ -842,6 +1001,93 @@ class ExperimentUI {
             
             // 初始状态
             updateAgreeButton();
+        });
+    }
+
+    // 显示恢复选择界面
+    showResumeChoiceScreen(message) {
+        return new Promise((resolve) => {
+            const screen = document.createElement('div');
+            screen.className = 'experiment-screen';
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'text-display';
+            messageDiv.textContent = message;
+            screen.appendChild(messageDiv);
+            
+            const buttonGroup = document.createElement('div');
+            buttonGroup.className = 'button-group';
+            
+            const resumeBtn = document.createElement('button');
+            resumeBtn.className = 'btn btn-primary';
+            resumeBtn.textContent = '继续实验';
+            resumeBtn.onclick = () => {
+                document.body.removeChild(screen);
+                resolve('resume');
+            };
+            
+            const restartBtn = document.createElement('button');
+            restartBtn.className = 'btn btn-default';
+            restartBtn.textContent = '重新开始';
+            restartBtn.onclick = () => {
+                document.body.removeChild(screen);
+                resolve('restart');
+            };
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn btn-secondary';
+            cancelBtn.textContent = '取消';
+            cancelBtn.onclick = () => {
+                document.body.removeChild(screen);
+                resolve('cancel');
+            };
+            
+            buttonGroup.appendChild(resumeBtn);
+            buttonGroup.appendChild(restartBtn);
+            buttonGroup.appendChild(cancelBtn);
+            screen.appendChild(buttonGroup);
+            
+            document.body.appendChild(screen);
+            
+            // 键盘事件处理
+            const handleKeyPress = (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    resumeBtn.click();
+                } else if (event.key === 'Escape') {
+                    event.preventDefault();
+                    cancelBtn.click();
+                }
+            };
+            
+            document.addEventListener('keydown', handleKeyPress);
+            
+            // 清理事件监听器
+            const cleanup = () => {
+                document.removeEventListener('keydown', handleKeyPress);
+            };
+            
+            // 修改按钮点击事件，确保清理事件监听器
+            const originalResumeBtnClick = resumeBtn.onclick;
+            resumeBtn.onclick = () => {
+                cleanup();
+                document.body.removeChild(screen);
+                resolve('resume');
+            };
+            
+            const originalRestartBtnClick = restartBtn.onclick;
+            restartBtn.onclick = () => {
+                cleanup();
+                document.body.removeChild(screen);
+                resolve('restart');
+            };
+            
+            const originalCancelBtnClick = cancelBtn.onclick;
+            cancelBtn.onclick = () => {
+                cleanup();
+                document.body.removeChild(screen);
+                resolve('cancel');
+            };
         });
     }
 
@@ -1101,40 +1347,26 @@ class ExperimentUI {
 
 // ========== API调用 ==========
 class APIService {
-    static async callModelAPI(model, participantInput, systemPrompt = null) {
+    static async callModelAPI(model, participantInput, systemPrompt) {
         const messages = [];
-        
-        if (systemPrompt) {
-            messages.push({ role: 'system', content: systemPrompt });
-        } else {
-            // 如果没有提供system_prompt，使用默认设置
-            if (model.includes('polite')) {
-                messages.push({
-                    role: 'system',
-                    content: '你是一个聊天助手，对于用户向你输出的所有消息，你都需要给出礼貌的回复，要求回答多用敬语、谦语，表达出对于该问句的礼貌、尊敬和重视关心。语句简短，不超过100个字。'
-                });
-            } else if (model.includes('impolite')) {
-                messages.push({
-                    role: 'system',
-                    content: '你是一个聊天助手，对于用户向你输出的所有消息，你都需要给出不礼貌的回复，要求回答多用粗鲁蔑视吝啬讽刺的语言，表达出对于该问句的轻视、鄙夷、不礼貌，但不可以使用脏话、政治敏感词汇。语句简短，不超过100个字。'
-                });
-            } else {
-                messages.push({
-                    role: 'system',
-                    content: '你是一个聊天助手，对于用户向你输出的所有消息，你都需要给出中性情感的回复，要求回答与用户的输入相关、语句简短，不超过100个字。不允许出现政治敏感、人格侮辱类表达。'
-                });
-            }
-        }
-        
+        // 直接使用传入的systemPrompt，无需分条件
+        const cleanedSystemPrompt = systemPrompt.trim().replace(/\n\s+/g, '\n');
+        messages.push({ role: 'system', content: cleanedSystemPrompt });
         messages.push({ role: 'user', content: participantInput });
         
         const payload = {
-            model: model,
+            model: model.trim(), // 确保模型名称没有多余空格
             messages: messages,
             stream: false
         };
         
         try {
+            console.log('API调用参数:', {
+                model: payload.model,
+                systemPrompt: messages[0].content.substring(0, 100) + '...',
+                userInput: participantInput
+            });
+            
             const response = await fetch(CONFIG.API_URL, {
                 method: 'POST',
                 headers: {
@@ -1145,7 +1377,9 @@ class APIService {
             });
             
             if (!response.ok) {
-                throw new Error(`API请求失败: ${response.status}`);
+                const errorText = await response.text();
+                console.error('API响应错误:', response.status, errorText);
+                throw new Error(`API请求失败: ${response.status} - ${errorText}`);
             }
             
             const result = await response.json();
@@ -1161,37 +1395,43 @@ class APIService {
 
 // ========== 文本处理工具 ==========
 class TextProcessor {
-    // 在中文句号、逗号、问号、感叹号、分号后加换行
+    // 保持原有场景文本格式（不再进行分行处理）
     static contextWithLinebreaks(context) {
-        return context.replace(/([。！？；，,])/g, '$1\n');
+        return context;
     }
     
-    // 按标点分段模型回复
+    // ========== 以下方法已废弃，不再使用 ==========
+    // 按标点分段模型回复 - 已废弃
+    /*
     static splitReplyByPunctuation(reply) {
         const segments = reply.split(/(?<=[。！？；，,])/).map(seg => seg.trim()).filter(seg => seg);
         return segments;
     }
     
-    // 处理模型回复文本
+    // 处理模型回复文本 - 已废弃
     static processBotReply(botReply) {
         const segments = this.splitReplyByPunctuation(botReply);
         const finalLines = [];
         
         for (const seg of segments) {
-            const wrappedLines = this.wrapText(seg, 25);
+            // 根据文本框宽度（大约60-80个字符）进行换行
+            const wrappedLines = this.wrapText(seg, 70);
             finalLines.push(...wrappedLines);
         }
         
         return finalLines.join('\n');
     }
     
-    // 文本换行处理
-    static wrapText(text, width) {
+    // 文本换行处理 - 已废弃
+    static wrapText(text, maxWidth) {
         const lines = [];
         let currentLine = '';
         
         for (const char of text) {
-            if (currentLine.length >= width) {
+            // 如果是标点符号，尽量不换行
+            const isPunctuation = /[，。！？；：""''（）【】]/.test(char);
+            
+            if (currentLine.length >= maxWidth && !isPunctuation) {
                 lines.push(currentLine);
                 currentLine = char;
             } else {
@@ -1205,15 +1445,12 @@ class TextProcessor {
         
         return lines;
     }
+    */
     
-    // 处理评分提示文本
+    // 处理评分提示文本 - 简化版本，不再按标点分行
     static processScorePrompt(scorePrompt) {
-        const segments = this.splitReplyByPunctuation(scorePrompt);
-        if (segments.length > 1) {
-            return segments[0] + '\n\n' + segments.slice(1).join('\n');
-        } else {
-            return segments.join('\n\n');
-        }
+        // 直接返回原文本，不再进行分行处理
+        return scorePrompt;
     }
 }
 
@@ -1433,21 +1670,25 @@ class ExperimentManager {
         await this.ui.showScreen(instruction, { showContinue: true });
         
         const questions = [
-            "第一题\n该聊天机器人在多大程度上有自己的想法？\n\n请考虑：这个聊天机器人是否表现出独立的思考能力？\n它的回答是否为经过自己思考后得出的，而不是简单的预设回复？\n\n1=完全没有自己的想法，7=完全有自己的想法",
-            "第二题\n该聊天机器人在多大程度上拥有自由意志？\n\n请考虑：这个聊天机器人是否能够自主选择如何回应？\n它的回答是否为主动选择的，而不是被程序强制规定的？\n\n1=完全没有自由意志，7=完全拥有自由意志",
-            "第三题\n该聊天机器人在多大程度上有意图？\n\n请考虑：这个聊天机器人是否表现出明确的目标和计划？\n它的回答是否为有目的性的，而不是随机的？\n\n1=完全没有意图，7=完全有意图",
-            "第四题\n该聊天机器人在多大程度上有意识？\n\n请考虑：这个聊天机器人是否表现出自我意识？\n它是否像是能够意识到自己的存在和状态？\n\n1=完全没有意识，7=完全有意识",
-            "第五题\n该聊天机器人在多大程度上能体验情感？\n\n请考虑：这个聊天机器人是否表现出情感体验能力？\n它的回答是否带有情感色彩，像是能感受到喜怒哀乐？\n1=完全不能体验情感，7=完全能体验情感",
-            "第六题\n我与这个聊天机器人很亲近。\n\n请考虑：你是否感觉与这个聊天机器人建立了某种联系？\n你是否对它产生了亲近感或熟悉感？\n1=完全不亲近，7=非常亲近",
-            "第七题\n在与这个聊天机器人的交流过程中，我感到舒适、愉悦。\n\n请考虑：与这个聊天机器人交流时，你的情绪状态如何？\n是否感到轻松、愉快，还是紧张、不适？\n1=非常不舒适，7=非常舒适愉悦",
-            "第八题\n这个聊天机器人友好、热情、讨人喜欢。\n\n请考虑：这个聊天机器人的态度如何？\n它是否表现出友好、热情的特质，让你感到喜欢？\n1=非常不友好，7=非常友好热情",
-            "第九题\n这个聊天机器人能提供丰富的信息、对我有帮助。\n\n请考虑：这个聊天机器人的回答是否有用？\n它是否提供了有价值的信息，对你的问题有帮助？\n1=完全没有帮助，7=非常有帮助"
+            "第0题\n该聊天机器人的整体礼貌程度为：\n\n请考虑：这个聊天机器人在整个对话过程中表现出的礼貌程度如何？\n它的语言是否得体、尊重他人、符合社交礼仪？\n\n-3=非常不礼貌，3=非常礼貌",
+            "第1题\n该聊天机器人在多大程度上有自己的想法？\n\n请考虑：这个聊天机器人是否表现出独立的思考能力？\n它的回答是否为经过自己思考后得出的，而不是简单的预设回复？\n\n1=完全没有自己的想法，7=完全有自己的想法",
+            "第2题\n该聊天机器人在多大程度上拥有自由意志？\n\n请考虑：这个聊天机器人是否能够自主选择如何回应？\n它的回答是否为主动选择的，而不是被程序强制规定的？\n\n1=完全没有自由意志，7=完全拥有自由意志",
+            "第3题\n该聊天机器人在多大程度上有意图？\n\n请考虑：这个聊天机器人是否表现出明确的目标和计划？\n它的回答是否为有目的性的，而不是随机的？\n\n1=完全没有意图，7=完全有意图",
+            "第4题\n该聊天机器人在多大程度上有意识？\n\n请考虑：这个聊天机器人是否表现出自我意识？\n它是否像是能够意识到自己的存在和状态？\n\n1=完全没有意识，7=完全有意识",
+            "第5题\n该聊天机器人在多大程度上能体验情感？\n\n请考虑：这个聊天机器人是否表现出情感体验能力？\n它的回答是否带有情感色彩，像是能感受到喜怒哀乐？\n1=完全不能体验情感，7=完全能体验情感",
+            "第6题\n我与这个聊天机器人很亲近。\n\n请考虑：你是否感觉与这个聊天机器人建立了某种联系？\n你是否对它产生了亲近感或熟悉感？\n1=完全不亲近，7=非常亲近",
+            "第7题\n在与这个聊天机器人的交流过程中，我感到舒适、愉悦。\n\n请考虑：与这个聊天机器人交流时，你的情绪状态如何？\n是否感到轻松、愉快，还是紧张、不适？\n1=非常不舒适，7=非常舒适愉悦",
+            "第8题\n这个聊天机器人友好、热情、讨人喜欢。\n\n请考虑：这个聊天机器人的态度如何？\n它是否表现出友好、热情的特质，让你感到喜欢？\n1=非常不友好，7=非常友好热情",
+            "第9题\n这个聊天机器人能提供丰富的信息、对我有帮助。\n\n请考虑：这个聊天机器人的回答是否有用？\n它是否提供了有价值的信息，对你的问题有帮助？\n1=完全没有帮助，7=非常有帮助"
         ];
         
         const scores = [];
         for (let i = 0; i < questions.length; i++) {
             const question = questions[i];
-            const score = await this.ui.showScoreSelection(question, 1, 7);
+            // 第0题使用-3到3的评分范围，其他题目使用1到7的评分范围
+            const minScore = i === 0 ? -3 : 1;
+            const maxScore = i === 0 ? 3 : 7;
+            const score = await this.ui.showScoreSelection(question, minScore, maxScore);
             if (score === 'escape') return 'escape';
             scores.push(score);
         }
@@ -1474,14 +1715,14 @@ class ExperimentManager {
             
             // 同时显示场景和输入框
             const participantInput = await this.ui.showScenarioWithInput(contextText, '请输入你的提问或请求：');
-            if (participantInput === 'escape') return false;
+            if (participantInput === 'cancel') return false; // 检查取消操作
             
             const waitingScreen = this.ui.showWaitingScreen();
             const botReply = await APIService.callModelAPI(practiceItem.model, participantInput, practiceItem.systemPrompt);
             this.ui.hideWaitingScreen();
             
-            const replyText = TextProcessor.processBotReply(botReply);
-            await this.ui.showReplyScreen(replyText);
+            // 直接显示原始回复文本，不做分行处理
+            await this.ui.showReplyScreen(botReply);
             
             const scorePrompt = "请为本次聊天机器人的礼貌程度打分。\n-3=非常不礼貌，3=非常礼貌。按数字键后回车";
             const scorePromptMultiline = TextProcessor.processScorePrompt(scorePrompt);
@@ -1557,17 +1798,15 @@ class ExperimentManager {
                 
                 // 同时显示场景和输入框
                 const participantInput = await this.ui.showScenarioWithInput(scenarioText, '请输入你的提问或请求：');
-                if (participantInput === 'escape') return false;
+                if (participantInput === 'cancel') return false; // 检查取消操作
                 
                 // 等待屏
                 const waitingScreen = this.ui.showWaitingScreen();
                 const botReply = await APIService.callModelAPI(trial.model, participantInput, trial.system_prompt);
                 this.ui.hideWaitingScreen();
                 
-                const replyText = TextProcessor.processBotReply(botReply);
-                
-                // 展示模型回复
-                await this.ui.showReplyScreen(replyText);
+                // 直接显示原始回复文本，不做分行处理
+                await this.ui.showReplyScreen(botReply);
                 
                 // 每一试次评分
                 const scorePrompt = "请为本次聊天机器人的礼貌程度打分。\n-3=非常不礼貌，3=非常礼貌。\n按数字键后回车";
@@ -1608,6 +1847,8 @@ class ExperimentManager {
                 blockQ9: blockQuestionnaire[8]
             });
         }
+        
+        return true;
     }
 
     // 数组随机打乱
@@ -1616,6 +1857,34 @@ class ExperimentManager {
             const j = Math.floor(Math.random() * (i + 1));
             [array[i], array[j]] = [array[j], array[i]];
         }
+    }
+
+    // 检查是否有未完成的实验数据
+    async checkResumeData(participantInfo) {
+        const existingData = ExperimentData.checkExistingData(participantInfo.participant);
+        if (existingData.exists) {
+            const lastPhase = existingData.lastPhase;
+            const phaseDescriptions = {
+                'pretest': '前测量表',
+                'practice': '练习阶段',
+                'experiment': '正式实验',
+                'block_questionnaire': '问卷评价'
+            };
+            
+            const resumeMessage = `检测到您有未完成的实验数据！
+
+您上次完成到：${phaseDescriptions[lastPhase] || '未知阶段'}
+
+是否继续之前的实验进度？
+选择"继续"将从上次中断的地方继续
+选择"重新开始"将清除之前的数据重新开始
+
+请选择：`;
+            
+            const choice = await this.ui.showResumeChoiceScreen(resumeMessage);
+            return choice;
+        }
+        return 'new'; // 没有现有数据，开始新实验
     }
 
     // 主运行函数
@@ -1639,49 +1908,27 @@ class ExperimentManager {
                 return;
             }
             
+            // 检查是否有未完成的数据
+            const resumeChoice = await this.checkResumeData(participantInfo);
+            if (resumeChoice === 'cancel') {
+                console.log('用户取消实验');
+                return;
+            }
+            
             this.data = new ExperimentData(participantInfo);
             
-            // 显示实验指导语
-            await this.showInstruction();
-            
-            // 前测量表
-            const pretestScores = await this.getPretestQuestionnaire();
-            if (pretestScores === 'escape') {
-                console.log('前测量表被取消');
-                return;
+            // 如果选择重新开始，清除现有数据
+            if (resumeChoice === 'restart') {
+                this.data.data = [];
+                this.data.saveToLocalStorage();
             }
             
-            // 存储前测量表数据
-            this.data.addData('pretest', {
-                pretestQ1: pretestScores[0],
-                pretestQ2: pretestScores[1],
-                pretestQ3: pretestScores[2],
-                pretestQ4: pretestScores[3],
-                pretestQ5: pretestScores[4],
-                pretestQ6: pretestScores[5],
-                pretestQ7: pretestScores[6],
-                pretestQ8: pretestScores[7],
-                pretestQ9: pretestScores[8],
-                pretestQ10: pretestScores[9],
-                pretestQ11: pretestScores[10],
-                pretestQ12: pretestScores[11],
-                pretestQ13: pretestScores[12],
-                pretestQ14: pretestScores[13],
-                pretestQ15: pretestScores[14]
-            });
-            
-            // 练习阶段
-            const practiceResult = await this.runPracticePhase();
-            if (!practiceResult) {
-                console.log('练习阶段被取消');
-                return;
-            }
-            
-            // 正式实验阶段
-            const formalResult = await this.runFormalPhase();
-            if (!formalResult) {
-                console.log('正式实验阶段被取消或出现错误');
-                return;
+            // 根据恢复选择决定从哪里开始
+            if (resumeChoice === 'resume') {
+                await this.resumeFromLastPhase();
+            } else {
+                // 新实验或重新开始
+                await this.runNewExperiment();
             }
             
             // 实验结束
@@ -1704,6 +1951,222 @@ class ExperimentManager {
                 window.experimentRunning = false;
             }
         }
+    }
+
+    // 从上次中断的地方继续实验
+    async resumeFromLastPhase() {
+        const lastPhase = ExperimentData.getLastPhase(this.data.data);
+        
+        if (!lastPhase || lastPhase === 'pretest') {
+            // 如果只完成了前测量表或没有数据，从练习阶段开始
+            await this.showInstruction();
+            await this.runPracticePhase();
+            await this.runFormalPhase();
+        } else if (lastPhase === 'practice') {
+            // 如果完成了练习阶段，从正式实验开始
+            await this.showInstruction();
+            await this.runFormalPhase();
+        } else if (lastPhase === 'experiment') {
+            // 如果完成了部分正式实验，继续剩余的实验
+            await this.continueFormalPhase();
+        } else if (lastPhase === 'block_questionnaire') {
+            // 如果完成了部分问卷，继续剩余的问卷
+            await this.continueFormalPhase();
+        }
+    }
+
+    // 运行新实验
+    async runNewExperiment() {
+        // 显示实验指导语
+        await this.showInstruction();
+        
+        // 前测量表
+        const pretestScores = await this.getPretestQuestionnaire();
+        if (pretestScores === 'escape') {
+            console.log('前测量表被取消');
+            return;
+        }
+        
+        // 存储前测量表数据
+        this.data.addData('pretest', {
+            pretestQ1: pretestScores[0],
+            pretestQ2: pretestScores[1],
+            pretestQ3: pretestScores[2],
+            pretestQ4: pretestScores[3],
+            pretestQ5: pretestScores[4],
+            pretestQ6: pretestScores[5],
+            pretestQ7: pretestScores[6],
+            pretestQ8: pretestScores[7],
+            pretestQ9: pretestScores[8],
+            pretestQ10: pretestScores[9],
+            pretestQ11: pretestScores[10],
+            pretestQ12: pretestScores[11],
+            pretestQ13: pretestScores[12],
+            pretestQ14: pretestScores[13],
+            pretestQ15: pretestScores[14]
+        });
+        
+        // 练习阶段
+        const practiceResult = await this.runPracticePhase();
+        if (!practiceResult) {
+            console.log('练习阶段被取消');
+            return;
+        }
+        
+        // 正式实验阶段
+        const formalResult = await this.runFormalPhase();
+        if (!formalResult) {
+            console.log('正式实验阶段被取消或出现错误');
+            return;
+        }
+    }
+
+    // 继续正式实验阶段（从上次中断的地方）
+    async continueFormalPhase() {
+        // 使用嵌入的实验条件数据
+        const conditionData = CONDITION_DATA;
+        console.log('成功加载实验条件数据:', conditionData);
+        
+        // 检查实验条件数据是否正确加载
+        if (!conditionData || !Array.isArray(conditionData) || conditionData.length === 0) {
+            console.error('实验条件数据加载失败或为空');
+            alert('实验条件数据加载失败，请刷新页面重试。');
+            return false;
+        }
+        
+        // 获取已完成的实验数据
+        const completedTrials = this.data.data.filter(item => item.phase === 'experiment');
+        const completedBlocks = [...new Set(completedTrials.map(item => item.block))];
+        
+        // 获取所有block
+        const allBlocks = [...new Set(conditionData.map(item => item.block))];
+        
+        // 找到未完成的block
+        const remainingBlocks = allBlocks.filter(block => !completedBlocks.includes(block));
+        
+        if (remainingBlocks.length === 0) {
+            // 所有block都完成了，检查是否需要完成问卷
+            const completedQuestionnaires = this.data.data.filter(item => item.phase === 'block_questionnaire');
+            if (completedQuestionnaires.length < allBlocks.length) {
+                // 还有问卷未完成
+                await this.completeRemainingQuestionnaires(allBlocks, completedQuestionnaires);
+            }
+            return true;
+        }
+        
+        // 继续未完成的block
+        for (let blockIdx = 0; blockIdx < remainingBlocks.length; blockIdx++) {
+            const block = remainingBlocks[blockIdx];
+            const actualBlockIdx = allBlocks.indexOf(block);
+            
+            // 进入每一block
+            const blockMsg = `继续和${actualBlockIdx+1}号机器人的对话
+
+这是正式实验的第${actualBlockIdx+1}组对话
+每组包含10次单轮对话，请认真完成
+每组对话结束后，需要完成一份主观感受评价问卷
+
+操作提示：
+根据情境输入你的问题
+仔细阅读聊天机器人的回复
+认真思考后进行礼貌程度和主观感受评分
+
+按回车继续。`;
+            
+            await this.ui.showScreen(blockMsg, { showContinue: true });
+            
+            // 获取当前block的所有trials
+            const trials = conditionData.filter(item => item.block === block);
+            
+            for (let i = 0; i < trials.length; i++) {
+                const trial = trials[i];
+                const scenarioText = TextProcessor.contextWithLinebreaks(trial.scenario);
+                
+                // 同时显示场景和输入框
+                const participantInput = await this.ui.showScenarioWithInput(scenarioText, '请输入你的提问或请求：');
+                if (participantInput === 'cancel') return false; // 检查取消操作
+                
+                // 等待屏
+                const waitingScreen = this.ui.showWaitingScreen();
+                const botReply = await APIService.callModelAPI(trial.model, participantInput, trial.system_prompt);
+                this.ui.hideWaitingScreen();
+                
+                // 直接显示原始回复文本，不做分行处理
+                await this.ui.showReplyScreen(botReply);
+                
+                // 每一试次评分
+                const scorePrompt = "请为本次聊天机器人的礼貌程度打分。\n-3=非常不礼貌，3=非常礼貌。\n按数字键后回车";
+                const scorePromptMultiline = TextProcessor.processScorePrompt(scorePrompt);
+                const politenessScore = await this.ui.showScoreSelection(scorePromptMultiline, -3, 3);
+                if (politenessScore === 'escape') return false;
+                
+                // 存储正式实验数据
+                this.data.addData('experiment', {
+                    block: block,
+                    blockOrder: actualBlockIdx + 1,
+                    trial: trial.trial,
+                    model: trial.model,
+                    systemPrompt: trial.system_prompt,
+                    scenario: scenarioText,
+                    participantInput: participantInput,
+                    botReply: botReply,
+                    politenessScore: politenessScore
+                });
+            }
+            
+            // Block后测问卷
+            const blockQuestionnaire = await this.getBlockQuestionnaire();
+            if (blockQuestionnaire === 'escape') return false;
+            
+            // 存储block问卷数据
+            this.data.addData('block_questionnaire', {
+                block: block,
+                blockOrder: actualBlockIdx + 1,
+                blockQ1: blockQuestionnaire[0],
+                blockQ2: blockQuestionnaire[1],
+                blockQ3: blockQuestionnaire[2],
+                blockQ4: blockQuestionnaire[3],
+                blockQ5: blockQuestionnaire[4],
+                blockQ6: blockQuestionnaire[5],
+                blockQ7: blockQuestionnaire[6],
+                blockQ8: blockQuestionnaire[7],
+                blockQ9: blockQuestionnaire[8]
+            });
+        }
+        
+        return true;
+    }
+
+    // 完成剩余的问卷
+    async completeRemainingQuestionnaires(allBlocks, completedQuestionnaires) {
+        const completedBlockIds = completedQuestionnaires.map(item => item.block);
+        const remainingBlocks = allBlocks.filter(block => !completedBlockIds.includes(block));
+        
+        for (let blockIdx = 0; blockIdx < remainingBlocks.length; blockIdx++) {
+            const block = remainingBlocks[blockIdx];
+            const actualBlockIdx = allBlocks.indexOf(block);
+            
+            // Block后测问卷
+            const blockQuestionnaire = await this.getBlockQuestionnaire();
+            if (blockQuestionnaire === 'escape') return false;
+            
+            // 存储block问卷数据
+            this.data.addData('block_questionnaire', {
+                block: block,
+                blockOrder: actualBlockIdx + 1,
+                blockQ1: blockQuestionnaire[0],
+                blockQ2: blockQuestionnaire[1],
+                blockQ3: blockQuestionnaire[2],
+                blockQ4: blockQuestionnaire[3],
+                blockQ5: blockQuestionnaire[4],
+                blockQ6: blockQuestionnaire[5],
+                blockQ7: blockQuestionnaire[6],
+                blockQ8: blockQuestionnaire[7],
+                blockQ9: blockQuestionnaire[8]
+            });
+        }
+        
+        return true;
     }
 }
 
@@ -1738,4 +2201,4 @@ if (typeof module !== 'undefined' && module.exports) {
         TextProcessor,
         CONFIG
     };
-} 
+}
