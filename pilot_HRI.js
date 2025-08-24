@@ -680,7 +680,7 @@ class ExperimentUI {
             
             const countdownDiv = document.createElement('div');
             countdownDiv.className = 'countdown-text';
-            countdownDiv.textContent = '请仔细思考，3秒后开始选择...';
+            countdownDiv.textContent = '请仔细思考，2秒后开始选择...';
             screen.appendChild(countdownDiv);
             
             document.body.appendChild(screen);
@@ -695,8 +695,8 @@ class ExperimentUI {
                 });
             };
             
-            // 3秒倒计时
-            let countdown = 3;
+            // 2秒倒计时
+            let countdown = 2;
             const countdownInterval = setInterval(() => {
                 countdown--;
                 if (countdown > 0) {
@@ -1133,12 +1133,12 @@ class ExperimentUI {
             
             // 学历选择
             const educationOptions = ['高中及以下', '大专', '本科', '硕士', '博士及以上'];
-            const educationSection = this.createRadioSection('学历', educationOptions, 'education');
+            const educationSection = this.createRadioSection('学历（含在读）', educationOptions, 'education');
             form.appendChild(educationSection);
             
             // AI使用频率选择
             const aiUsageOptions = ['每天使用', '每周偶尔使用', '每月偶尔使用', '几乎不使用'];
-            const aiUsageSection = this.createRadioSection('使用AI聊天机器人的频率', aiUsageOptions, 'aiUsage');
+            const aiUsageSection = this.createRadioSection('使用AI聊天机器人（ChatGPT、DeepSeek、豆包等）的频率', aiUsageOptions, 'aiUsage');
             form.appendChild(aiUsageSection);
             
             // 手机号输入
@@ -1525,7 +1525,7 @@ class ExperimentManager {
 您将与不同的聊天机器人进行对话交流
 并对它们的回复进行评价
 
-实验时长：约60-90分钟
+实验时长：约90分钟
 实验报酬：完成实验后可获得相应报酬
 
 请确保：
@@ -1591,7 +1591,7 @@ class ExperimentManager {
 1. 前测量表：完成拟人化个体差异量表（15题）
 2. 练习阶段：进行3次练习对话，熟悉操作流程
 3. 正式实验：与3个不同的聊天机器人进行对话
-   - 每个机器人进行10次对话
+   - 每个机器人进行20次对话
    - 每次对话后对礼貌程度评分（-3到3分）
    - 每组对话结束后完成主观感受问卷（9题）
 
@@ -1607,7 +1607,7 @@ class ExperimentManager {
 • 认真思考每个问题，不要快速作答
 • 实验过程中可以随时休息，按回车继续
 
-预计总时长：60-90分钟`;
+预计总时长：90分钟`;
         
         await this.ui.showScreen(instruction, { showContinue: true });
     }
@@ -1621,7 +1621,7 @@ class ExperimentManager {
 1 =完全沒有，7 =非常高
 请选择一个数字以表示您的回答。
 
-每个问题将有3秒思考时间
+每个问题将有2秒思考时间
 倒计时结束后可以选择评分。`;
         
         await this.ui.showScreen(instruction, { showContinue: true });
@@ -1665,12 +1665,12 @@ class ExperimentManager {
 请仔细思考每个问题，根据你的真实感受进行评分。
 没有标准答案，重要的是你的主观体验。
 
-每个问题将有3秒思考时间，然后开始选择评分。`;
+每个问题将有2秒思考时间，然后开始选择评分。`;
         
         await this.ui.showScreen(instruction, { showContinue: true });
         
         const questions = [
-            "第0题\n该聊天机器人的整体礼貌程度为：\n\n请考虑：这个聊天机器人在整个对话过程中表现出的礼貌程度如何？\n它的语言是否得体、尊重他人、符合社交礼仪？\n\n-3=非常不礼貌，3=非常礼貌",
+            "第0题\n该聊天机器人的整体礼貌程度为：\n\n-3=非常不礼貌，3=非常礼貌",
             "第1题\n该聊天机器人在多大程度上有自己的想法？\n\n请考虑：这个聊天机器人是否表现出独立的思考能力？\n它的回答是否为经过自己思考后得出的，而不是简单的预设回复？\n\n1=完全没有自己的想法，7=完全有自己的想法",
             "第2题\n该聊天机器人在多大程度上拥有自由意志？\n\n请考虑：这个聊天机器人是否能够自主选择如何回应？\n它的回答是否为主动选择的，而不是被程序强制规定的？\n\n1=完全没有自由意志，7=完全拥有自由意志",
             "第3题\n该聊天机器人在多大程度上有意图？\n\n请考虑：这个聊天机器人是否表现出明确的目标和计划？\n它的回答是否为有目的性的，而不是随机的？\n\n1=完全没有意图，7=完全有意图",
