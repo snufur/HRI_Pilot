@@ -1,6 +1,6 @@
 // ========== 全局配置 ==========
 const CONFIG = {
-    API_KEY: 'sk-izbupvpfiixwvwisbyshnnibdsbuaikpynrehgaapnzyheuc',
+    API_KEY: 'your api key',
     API_URL: 'https://api.siliconflow.cn/v1/chat/completions',
     TEXT_CONFIG: {
         font: 'SimHei, Arial, sans-serif',
